@@ -8,7 +8,7 @@ use serenity::model::id::GuildId;
 use serenity::model::user::OnlineStatus;
 use serenity::prelude::{Context, EventHandler, Mutex};
 use serenity::{async_trait, framework::standard::StandardFramework};
-use serenity::{voice, Client};
+use serenity::{/*voice,**/ Client};
 use std::env;
 use std::process::exit;
 use std::str::FromStr;
@@ -50,42 +50,42 @@ impl Handler {
         }
     }
 
-    async fn join_voice_channels(&self, ctx: &Context) {
-        let voice_channels = self.voice_channels.lock().await;
-        let voice_ref = &*voice_channels;
+    // async fn join_voice_channels(&self, ctx: &Context) {
+    //     let voice_channels = self.voice_channels.lock().await;
+    //     let voice_ref = &*voice_channels;
 
-        let manager_lock = ctx
-            .data
-            .read()
-            .await
-            .get::<VoiceManager>()
-            .cloned()
-            .unwrap();
-        let mut manager = manager_lock.lock().await;
+    //     let manager_lock = ctx
+    //         .data
+    //         .read()
+    //         .await
+    //         .get::<VoiceManager>()
+    //         .cloned()
+    //         .unwrap();
+    //     let mut manager = manager_lock.lock().await;
 
-        for channel in voice_ref {
-            if manager.get(channel.guild_id).is_some() {
-                manager.remove(channel.guild_id);
-                println!("Rejoining channel top2000 on server {}!", channel.guild_id);
-            }
+    //     for channel in voice_ref {
+    //         if manager.get(channel.guild_id).is_some() {
+    //             manager.remove(channel.guild_id);
+    //             println!("Rejoining channel top2000 on server {}!", channel.guild_id);
+    //         }
 
-            let joined_channel = manager.join(channel.guild_id, channel.id);
-            if let Some(handler) = joined_channel {
-                println!("Joined channel top2000 on server {}!", channel.guild_id);
+    //         let joined_channel = manager.join(channel.guild_id, channel.id);
+    //         if let Some(handler) = joined_channel {
+    //             println!("Joined channel top2000 on server {}!", channel.guild_id);
 
-                let source = match voice::ytdl("https://icecast.omroep.nl/radio2-bb-mp3").await {
-                    Ok(source) => source,
-                    Err(why) => {
-                        panic!("Err starting source: {:?}", why);
-                    }
-                };
+    //             let source = match voice::ytdl("https://icecast.omroep.nl/radio2-bb-mp3").await {
+    //                 Ok(source) => source,
+    //                 Err(why) => {
+    //                     panic!("Err starting source: {:?}", why);
+    //                 }
+    //             };
 
-                handler.play_only(source);
-            } else {
-                panic!("Failed to join channel on server {}!", channel.guild_id);
-            }
-        }
-    }
+    //             handler.play_only(source);
+    //         } else {
+    //             panic!("Failed to join channel on server {}!", channel.guild_id);
+    //         }
+    //     }
+    // }
 
     async fn background_loop(&self, ctx: &Context) {
         let mut self_clone = self.async_clone().await;
@@ -100,6 +100,7 @@ impl Handler {
                     || on_air.song.id != prev_now_on_air.unwrap().song.id
                     || on_air.song.title != prev_now_on_air.unwrap().song.title
                     || on_air.song.artist != prev_now_on_air.unwrap().song.artist
+                      // ensures no jumping around occurs when multiple songs are somehow in the currently playing list
                 {
                     self_clone.now_on_air = Some(on_air.clone());
 
@@ -136,10 +137,10 @@ impl Handler {
 
         if now_on_air.song.id == first_song.id {
             loop {
-                let date2021_res = DateTime::from_str("2021-01-01T00:00:00+01:00");
-                if let Ok(date2021) = date2021_res {
-                    let now_min_2021 = Utc::now() - date2021;
-                    if now_min_2021.num_seconds() > 0 {
+                let date2022_res = DateTime::from_str("2022-01-01T00:00:00+01:00");
+                if let Ok(date2022) = date2022_res {
+                    let now_min_2022 = Utc::now() - date2022;
+                    if now_min_2022.num_seconds() > 0 {
                         let text_channels = self.text_channels.lock().await;
                         let text_ref = &*text_channels;
 
@@ -171,9 +172,9 @@ impl Handler {
             let sent_message = text_channel
                 .send_message(ctx, |m| {
                     m.embed(|e| {
-                        let date2021_res = DateTime::from_str("2021-01-01T00:00:00+01:00");
-                        let minutes_till_2021 = if let Ok(date2021) = date2021_res {
-                            let minutes = (date2021 - Utc::now()).num_minutes();
+                        let date2022_res = DateTime::from_str("2022-01-01T00:00:00+01:00");
+                        let minutes_till_2022 = if let Ok(date2022) = date2022_res {
+                            let minutes = (date2022 - Utc::now()).num_minutes();
 
                             format!("{:02}:{:02}", (minutes / 60) as u64, (minutes % 60) as u64)
                         } else {
@@ -212,7 +213,7 @@ impl Handler {
                             format!("{}{}", curr_position, last_year_position),
                             true,
                         )
-                        .field("Time until 2021", minutes_till_2021, true)
+                        .field("Time until 2022", minutes_till_2022, true)
                         .url(format!("https://www.nporadio2.nl{}", now_on_air.song.url))
                     })
                 })
@@ -260,7 +261,7 @@ impl EventHandler for Handler {
             }
         }
 
-        self.join_voice_channels(&ctx).await;
+        // self.join_voice_channels(&ctx).await;
         self.background_loop(&ctx).await;
     }
 }
